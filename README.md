@@ -16,7 +16,11 @@ Requires a config.yaml file with the following fields:
 
 Requirements:
 [pip](https://pypi.org/project/pip/)
+
 [Google API Client](https://github.com/googleapis/google-api-python-client)
+
 [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+
 [FFmpeg](https://ffmpeg.org/)
+
 [Don't Sleep](http://www.softwareok.com/?seite=Microsoft/DontSleep)
