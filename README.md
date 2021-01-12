@@ -14,13 +14,9 @@ Requires a config.yaml file with the following fields:
 | extensions | Array of video file extensions used when organizing the main folder, so the organizer ignores non-video files. | `- .mp4`, `- .mkv`, etc |
 | dont-sleep | Location of the Don't Sleep exe. | `D:\DontSleep_x64_p.exe` |
 
-Requirements:
-[pip](https://pypi.org/project/pip/)
-
-[Google API Client](https://github.com/googleapis/google-api-python-client)
-
-[youtube-dl](https://github.com/ytdl-org/youtube-dl)
-
-[FFmpeg](https://ffmpeg.org/)
-
+Requirements:  
+[pip](https://pypi.org/project/pip/)  
+[Google API Client](https://github.com/googleapis/google-api-python-client)  
+[youtube-dl](https://github.com/ytdl-org/youtube-dl)  
+[FFmpeg](https://ffmpeg.org/)  
 [Don't Sleep](http://www.softwareok.com/?seite=Microsoft/DontSleep)
