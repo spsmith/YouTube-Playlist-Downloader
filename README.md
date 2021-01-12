@@ -11,7 +11,7 @@ Requires a config.yaml file with the following fields:
 | api-key | YouTube Data API key used for getting playlist info. | `get your own :)` |
 | rate-limit | Rate limit for youtube-dl. | `1M` |
 | channel-limit | An int. If more than this many videos are downloaded from a single channel, they will be moved to a subfolder with that channel's name. | `5` |
-| extensions | Video file extensions used when organizing the main folder. Used to help the organizer ignore non-video files. | `- .mp4`, `- .mkv`, etc |
+| extensions | Array of video file extensions used when organizing the main folder, so the organizer ignores non-video files. | `- .mp4`, `- .mkv`, etc |
 | dont-sleep | Location of the Don't Sleep exe. | `D:\DontSleep_x64_p.exe` |
 
 Requirements:
