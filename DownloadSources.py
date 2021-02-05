@@ -21,7 +21,7 @@ def DownloadSources(yaml_file):
         #scan all videos in sources folder already (and subfolders)
         print("Loading sources")
         sources = LoadSources(config["source-folder"], config["separator"], config["extensions"])
-        source_ids = [s.ID for s in sources]
+        source_ids = [s.ID for s in sources if s.ID is not None]
 
         #load ids of previously failed downloads
         failed_ids = []
@@ -56,12 +56,12 @@ def DownloadSources(yaml_file):
         for v_id in video_ids_to_download:
             subprocess.call(['youtube-dl', '-o', '{}\{}'.format(config["source-folder"], config["output-template"]), 'https://www.youtube.com/watch?v={}'.format(v_id), '-r', config["rate-limit"]])
 
-            #after download is done, check if file exist
-            current_sources = LoadSources(config["source-folder"], config["separator"], config["extensions"], False)
-
+            #after download is done, check if file exists
             #scan the source folder again to see if video was downloaded
             #(this seemed easier than trying to catch youtube-dl output and parse for errors...)
+            current_sources = LoadSources(config["source-folder"], config["separator"], config["extensions"], False)
             downloaded_video = [d_v for d_v in current_sources if d_v.ID == v_id]
+
             #if the video is not here, that means it was unavailable for download or the download failed partway through
             if len(downloaded_video) < 1:
                 print("{}: download error!".format(v_id))
@@ -87,7 +87,7 @@ def DownloadSources(yaml_file):
         sources = LoadSources(config["source-folder"], config["separator"], config["extensions"])
 
         #count videos from each channel (only move videos in main source folder)
-        channels = [source.Channel for source in sources]
+        channels = [s.Channel for s in sources if s.Channel is not None]
         unique_channels = set(channels)
         channel_count = {}
         for channel in unique_channels:
@@ -137,7 +137,6 @@ def LoadSources(folder, separator, extensions, recursive=True):
                 #get source
                 source_video = SourceVideo(f, folder, separator)
                 sources.append(source_video)
-                #print("\t- added source '{}'".format(source_video.Name))
 
     return sources
 
