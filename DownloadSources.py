@@ -11,6 +11,10 @@ def DownloadSources(yaml_file):
     subprocess.call(['pip', 'install', 'youtube-dl', '--upgrade'])
 
     #read yaml config
+    if yaml_file is None:
+        print("DownloadSources error! Need a .yaml file (none given).")
+        return
+
     with open(yaml_file, 'r') as yf:
         config = yaml.safe_load(yf)
 
@@ -52,7 +56,7 @@ def DownloadSources(yaml_file):
 
         #download videos
         print("Downloading sources")
-        video_ids_to_download = [v_id for v_id in video_ids if v_id not in source_ids and v_id not in failed_ids]
+        video_ids_to_download = [v_id for v_id in video_ids if v_id not in source_ids]
         for v_id in video_ids_to_download:
             subprocess.call(['youtube-dl', '-o', '{}\{}'.format(config["source-folder"], config["output-template"]), 'https://www.youtube.com/watch?v={}'.format(v_id), '-r', config["rate-limit"]])
 
@@ -94,21 +98,22 @@ def DownloadSources(yaml_file):
             channel_count[channel] = channels.count(channel)
 
         #for any channels with enough videos, move them to a subfolder
-        print("Organizing sources")
-        channel_folders = {}
-        for channel, count in channel_count.items():
-            if count >= int(config["channel-limit"]):
-                channel_folder = os.path.join(config["source-folder"], channel)
-                if not os.path.isdir(channel_folder):
-                    os.mkdir(channel_folder)
-                channel_folders[channel] = channel_folder
-        for source in sources:
-            if source.Folder is not config["source-folder"]:
-                #skip videos that are already in a folder
-                continue
-            if source.Channel in channel_folders.keys():
-                #otherwise, move them to the channel folder
-                source.MoveToFolder(channel_folders[source.Channel])
+        if config["channel-limit"] > 0:
+            print("Organizing sources")
+            channel_folders = {}
+            for channel, count in channel_count.items():
+                if count >= int(config["channel-limit"]):
+                    channel_folder = os.path.join(config["source-folder"], channel)
+                    if not os.path.isdir(channel_folder):
+                        os.mkdir(channel_folder)
+                    channel_folders[channel] = channel_folder
+            for source in sources:
+                if source.Folder is not config["source-folder"]:
+                    #skip videos that are already in a folder
+                    continue
+                if source.Channel in channel_folders.keys():
+                    #otherwise, move them to the channel folder
+                    source.MoveToFolder(channel_folders[source.Channel])
 
         #last step: notify any new failed downloads
         new_failed = [f_id for f_id in failed_ids if f_id not in original_failed_ids]
@@ -125,18 +130,19 @@ def DownloadSources(yaml_file):
 def LoadSources(folder, separator, extensions, recursive=True):
     sources = []
 
-    for f in os.listdir(folder):
-        filepath = os.path.join(folder, f)
-        if os.path.isdir(filepath):
-            if recursive:
-                #get all sources in the subfolder
-                sources = sources + LoadSources(os.path.join(folder, f), separator, extensions)
-        elif os.path.isfile(filepath):
-            #skip files without the correct extension
-            if os.path.splitext(filepath)[1] in extensions:
-                #get source
-                source_video = SourceVideo(f, folder, separator)
-                sources.append(source_video)
+    if os.path.isdir(folder):   
+        for f in os.listdir(folder):
+            filepath = os.path.join(folder, f)
+            if os.path.isdir(filepath):
+                if recursive:
+                    #get all sources in the subfolder
+                    sources = sources + LoadSources(os.path.join(folder, f), separator, extensions)
+            elif os.path.isfile(filepath):
+                #skip files without the correct extension
+                if os.path.splitext(filepath)[1] in extensions:
+                    #get source
+                    source_video = SourceVideo(f, folder, separator)
+                    sources.append(source_video)
 
     return sources
 
