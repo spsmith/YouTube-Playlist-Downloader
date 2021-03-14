@@ -1,8 +1,11 @@
 import os
 import sys
 import shutil
+import subprocess
 
 class SourceVideo:
+    ORIGINAL_DIR = "_original"
+
     def __init__(self, filename, folder, separator):
         self.Folder = folder
         self.Filename = filename
@@ -29,3 +32,9 @@ class SourceVideo:
         except FileNotFoundError:
             print("\t{}: file not found, skipping...\n\t{}".format(self.Name, sys.exc_info()))
         self.Folder = folder
+
+    def GetCodec(self):
+        #https://stackoverflow.com/questions/2869281/how-to-determine-video-codec-of-a-file-with-ffmpeg/29610897
+        p = subprocess.Popen(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name', '-of', 'default=noprint_wrappers=1:nokey=1', os.path.join(self.Folder, self.Filename)], stdout=subprocess.PIPE)
+        codec = p.stdout.read()
+        return codec.decode('ascii').replace('\r\n', '')
