@@ -8,8 +8,8 @@ import googleapiclient.discovery
 from SourceVideo import SourceVideo
 
 def DownloadSources(yaml_file, download=True, reencode=True, organize=True):
-    #make sure youtube-dl is up to date
-    subprocess.call(['pip', 'install', 'youtube-dl', '--upgrade'])
+    #make sure yt-dlp is up to date
+    subprocess.call(['pip', 'install', 'yt-dlp', '--upgrade'])
 
     #read yaml config
     if yaml_file is None:
@@ -60,20 +60,21 @@ def DownloadSources(yaml_file, download=True, reencode=True, organize=True):
             print("Downloading sources")
             video_ids_to_download = [v_id for v_id in video_ids if v_id not in source_ids]
             for v_id in video_ids_to_download:
-                subprocess.call(['youtube-dl', '-o', '{}\{}'.format(config["source-folder"], config["output-template"]), 'https://www.youtube.com/watch?v={}'.format(v_id), '-r', config["rate-limit"]])
+                subprocess.call(['yt-dlp', '-o', '{}\{}'.format(config["source-folder"], config["output-template"]), 'https://www.youtube.com/watch?v={}'.format(v_id), '-r', config["rate-limit"]])
 
                 #after download is done, check if file exists
                 #scan the source folder again to see if video was downloaded
-                #(this seemed easier than trying to catch youtube-dl output and parse for errors...)
+                #(this seemed easier than trying to catch yt-dlp output and parse for errors...)
                 current_sources = LoadSources(config["source-folder"], config["separator"], config["extensions"], False)
                 downloaded_video = [d_v for d_v in current_sources if d_v.ID == v_id]
 
                 #if the video is not here, that means it was unavailable for download or the download failed partway through
                 if len(downloaded_video) < 1:
                     print("{}: download error!".format(v_id))
-                    failed_ids.append(v_id)
+                    if v_id not in failed_ids:
+                        failed_ids.append(v_id)
 
-            #write failed downloads to an output file
+            #write new failed downloads to an output file
             with open("failed.txt", 'w') as failed_f:
                 for line in failed_ids:
                     failed_f.write(line + '\n')
@@ -87,7 +88,6 @@ def DownloadSources(yaml_file, download=True, reencode=True, organize=True):
             for source in sources:
                 if (source.Extension != '.mp4' and source.Extension != '.avi') or source.GetCodec() in config["bad-codecs"]:
                     print("Converting {} to valid mp4...".format(source.Name))
-                    #Convert(source)
                     Reencode(source)
                     #original file will be deleted after reencode
 
@@ -145,10 +145,14 @@ def LoadSources(folder, separator, extensions, recursive=True):
                     sources = sources + LoadSources(os.path.join(folder, f), separator, extensions)
             elif os.path.isfile(filepath):
                 #skip files without the correct extension
-                if os.path.splitext(filepath)[1] in extensions:
+                extension = os.path.splitext(filepath)[1]
+                if extension in extensions:
                     #get source
                     source_video = SourceVideo(f, folder, separator)
                     sources.append(source_video)
+                elif extension == "":
+                    #remove leftover failed download files
+                    os.remove(filepath)
 
     return sources
 
