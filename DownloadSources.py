@@ -31,11 +31,13 @@ def DownloadSources(yaml_file, download=True, reencode=True, organize=True):
 
             #load ids of previously failed downloads
             failed_ids = []
-            with open("failed.txt", 'r') as failed_f:
-                for line in failed_f:
-                    f_id = line.strip()
-                    if len(f_id) > 0:
-                        failed_ids.append(f_id)
+            failed_path = "failed.txt"
+            if os.path.isfile(failed_path):
+                with open(failed_path, 'r') as failed_f:
+                    for line in failed_f:
+                        f_id = line.strip()
+                        if len(f_id) > 0:
+                            failed_ids.append(f_id)
             original_failed_ids = set(failed_ids)
 
             #get all videos from playlist
@@ -60,7 +62,7 @@ def DownloadSources(yaml_file, download=True, reencode=True, organize=True):
             print("Downloading sources")
             video_ids_to_download = [v_id for v_id in video_ids if v_id not in source_ids]
             for v_id in video_ids_to_download:
-                subprocess.call(['yt-dlp', '-o', '{}\{}'.format(config["source-folder"], config["output-template"]), 'https://www.youtube.com/watch?v={}'.format(v_id), '-r', config["rate-limit"]])
+                subprocess.call(['yt-dlp', '-o', '{}\{}'.format(config["source-folder"], config["output-template"]), 'https://www.youtube.com/watch?v={}'.format(v_id), '-r', config["rate-limit"], '--cookies-from-browser', config["browser"]])
 
                 #after download is done, check if file exists
                 #scan the source folder again to see if video was downloaded
@@ -86,10 +88,13 @@ def DownloadSources(yaml_file, download=True, reencode=True, organize=True):
             #if any videos are an unsupported format, encode them
             print("Reencoding sources")
             for source in sources:
-                if (source.Extension != '.mp4' and source.Extension != '.avi') or source.GetCodec() in config["bad-codecs"]:
+                if (source.Extension != '.mp4' and source.Extension != '.avi') or source.GetVideoCodec() in config["bad-codecs"]:
                     print("Converting {} to valid mp4...".format(source.Name))
-                    Reencode(source)
-                    #original file will be deleted after reencode
+                    ReencodeVideo(source)
+                if source.GetAudioCodec() != 'aac':
+                    print("Converting {} audio to aac...".format(source.Name))
+                    ReencodeAudio(source)
+                #original file will be deleted after reencode
 
         if organize:
             #load sources again(!) in case any files were reencoded
@@ -165,7 +170,7 @@ def Convert(source):
     #delete original when done
     os.remove(original_filepath)
 
-def Reencode(source):
+def ReencodeVideo(source):
     #move original file to a subfolder
     original_filepath = os.path.join(source.Folder, source.Filename)
     orig_dir = os.path.join(source.Folder, SourceVideo.ORIGINAL_DIR)
@@ -178,11 +183,31 @@ def Reencode(source):
     new_filepath = '.'.join([os.path.splitext(original_filepath)[0], 'mp4'])
     subprocess.call(['ffmpeg', '-i', current_filepath, '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', '-c:a', 'copy', new_filepath, '-y'])
 
+    #update filename
+    source.Filename = '.'.join([os.path.splitext(source.Filename)[0], 'mp4'])
+
     #delete original when done
     os.remove(current_filepath)
     if len(os.listdir(orig_dir)) == 0:
         os.rmdir(orig_dir)
 
+def ReencodeAudio(source):
+    #move original file to a subfolder
+    original_filepath = os.path.join(source.Folder, source.Filename)
+    orig_dir = os.path.join(source.Folder, SourceVideo.ORIGINAL_DIR)
+    if not os.path.exists(orig_dir):
+        os.mkdir(orig_dir)
+    current_filepath = os.path.join(orig_dir, source.Filename)
+    shutil.move(original_filepath, current_filepath)
+
+    #reencode to a valid codec
+    new_filepath = '.'.join([os.path.splitext(original_filepath)[0], 'mp4'])
+    subprocess.call(['ffmpeg', '-i', current_filepath, '-c:v', 'copy', '-crf', '18', '-preset', 'veryfast', '-c:a', 'aac', new_filepath, '-y'])
+
+    #delete original when done
+    os.remove(current_filepath)
+    if len(os.listdir(orig_dir)) == 0:
+        os.rmdir(orig_dir)
 
 if __name__ == "__main__":
     DownloadSources("config/config.yaml")
